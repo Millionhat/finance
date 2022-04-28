@@ -2,6 +2,7 @@ package ia2.datagather.finanzas.Activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -69,15 +70,19 @@ public class AgregarGasto extends AppCompatActivity implements View.OnClickListe
                 Double valor = Double.parseDouble(monto.getText().toString());
                 if(desc!="" && cat!="" && valor > 0) {
                     Date date = new Date();
-                    Gasto nuevoGasto = new Gasto(UUID.randomUUID().toString(),cat,desc,valor, new Timestamp(new java.sql.Timestamp(date.getTime())));
+                    Gasto nuevoGasto = new Gasto(UUID.randomUUID().toString(),cat,desc,valor, new Date());
+                    tarjeta.getGastos().add(nuevoGasto);
                     db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                            .document(tarjeta.getId()).collection("gastos")
-                            .document(nuevoGasto.getId()).set(nuevoGasto);
+                            .document(tarjeta.getId()).set(tarjeta);
+                    Intent i = new Intent();
+                    setResult(RESULT_OK,i);
                     finish();
                 }
                 break;
 
             case R.id.cancelarAgregarGastoBtn:
+                Intent i = new Intent();
+                setResult(RESULT_CANCELED,i);
                 finish();
                 break;
         }

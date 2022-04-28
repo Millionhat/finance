@@ -38,7 +38,7 @@ public class AdaptadorTransacciones extends RecyclerView.Adapter<TransaccionView
             valor= "$ "+transaccion.getMonto();
         }
         holder.getDescripcion().setText(titulo);
-        holder.getFecha().setText(transaccion.getFecha().toDate().toString());
+        holder.getFecha().setText(transaccion.getFecha().toString());
         holder.getMonto().setText(valor);
     }
 

@@ -4,18 +4,19 @@ import com.google.firebase.Timestamp;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 public class Gasto implements Serializable {
 
     private String id;
     private String categoria,descripcion;
     private Double monto;
-    private Timestamp fecha;
+    private Date fecha;
 
     public Gasto() {
     }
 
-    public Gasto(String id, String categoria, String descripcion, Double monto, Timestamp fecha) {
+    public Gasto(String id, String categoria, String descripcion, Double monto, Date fecha) {
         this.id = id;
         this.categoria = categoria;
         this.descripcion = descripcion;
@@ -51,11 +52,11 @@ public class Gasto implements Serializable {
         this.monto = monto;
     }
 
-    public Timestamp  getFecha() {
+    public Date  getFecha() {
         return fecha;
     }
 
-    public void setFecha(Timestamp fecha) {
+    public void setFecha(Date fecha) {
         this.fecha = fecha;
     }
 }

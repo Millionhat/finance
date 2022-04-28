@@ -1,5 +1,6 @@
 package ia2.datagather.finanzas.Activity;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -19,8 +20,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ia2.datagather.finanzas.List.AdaptadorGasto;
 import ia2.datagather.finanzas.Model.Gasto;
@@ -74,12 +77,26 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
     }
 
     private void cargarGastos() {
-        if(tarjeta.getTipo().equals("Credito")){
+        if(tarjeta.getTipo().equals("Credito") && !loaded){
             agregarIngresoBtn.setEnabled(false);
             agregarIngresoBtn.setAlpha(0);
             LocalDate fecha = LocalDate.now().minusDays(30);
             Date fecha30diasAntes = Date.from(fecha.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Timestamp comparacion = new Timestamp(new java.sql.Timestamp(fecha30diasAntes.getTime()));
+            AtomicReference<Double> totalGastos = new AtomicReference<>(0.0);
+            tarjeta.getGastos().forEach(g->{
+                int resultado = g.getFecha().compareTo(fecha30diasAntes);
+                if(resultado>0){
+                    totalGastos.updateAndGet(v -> v + g.getMonto());
+                    adaptador.agregarGasto(g);
+                }
+            });
+            runOnUiThread(
+                    () ->{
+                        montoDisponible.setText("Monto Disponible: "+ (montoTotal-totalGastos.get()));
+                    }
+            );
+            loaded = true;
+            /*
             Query refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas").document(tarjeta.getId()).collection("gastos").whereGreaterThan("fecha", comparacion);
             refGastos.get().addOnCompleteListener(
                     g->{
@@ -92,8 +109,36 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                         }
                         montoDisponible.setText("Monto Disponible: " + (montoTotal-totalGastos));
                     }
-            );
+            );*/
         }else {
+            AtomicReference<Double> totalGastos = new AtomicReference<>(0.0);
+            tarjeta.getGastos().forEach(g->{
+                totalGastos.updateAndGet(v -> v + g.getMonto());
+                adaptador.agregarGasto(g);
+            });
+            montoTotal = montoTotal - totalGastos.get();
+            runOnUiThread(
+                    () ->{
+                        montoDisponible.setText("Monto Disponible: " + (montoTotal));
+                    }
+            );
+
+            loaded = true;
+            if(montoTotal <= 0){
+                runOnUiThread(
+                        ()->{
+                            crearGastoBtn.setEnabled(false);
+                        }
+                );
+            }else {
+                runOnUiThread(
+                        ()->{
+                            crearGastoBtn.setEnabled(true);
+                        }
+                );
+            }
+            loaded=true;
+            /*
             Query refIngresos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas").document(tarjeta.getId()).collection("ingresos");
             refIngresos.get().addOnCompleteListener(
                     g->{
@@ -134,7 +179,7 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                             }
                         }
                     }
-            );
+            );*/
         }
     }
 
@@ -146,12 +191,22 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                 i.putExtra("usuario", usuario);
                 i.putExtra("tarjeta", tarjeta);
                 loaded=false;
-                startActivity(i);
+                startActivityForResult(i,1);
                 break;
 
             case R.id.AgregarIngresoBtn:
                 crearDialogo();
                 break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode ==1){
+            if(resultCode== RESULT_OK){
+                cargarGastos();
+            }
         }
     }
 
@@ -177,20 +232,13 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
         Date date = new Date();
         Ingreso nuevoIngreso = new Ingreso(UUID.randomUUID().toString(),
                 Double.parseDouble(fragMontoIngreso.getText().toString()),
-                new Timestamp(new java.sql.Timestamp(date.getTime())));
-        loaded=false;
+                date);
+        tarjeta.getIngresos().add(nuevoIngreso);
         db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                .document(tarjeta.getId()).collection("ingresos")
-                .document(nuevoIngreso.getId()).set(nuevoIngreso);
+                .document(tarjeta.getId()).set(tarjeta);
         cargarGastos();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        cargarGastos();
-    }
 
     @Override
     public void gastoPresionado(Gasto gasto) {

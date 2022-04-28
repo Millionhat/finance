@@ -2,16 +2,18 @@ package ia2.datagather.finanzas.Model;
 
 import com.google.firebase.Timestamp;
 
+import java.util.Date;
+
 public class Ingreso {
 
     private String id;
     private Double ingreso;
-    private Timestamp fecha;
+    private Date fecha;
 
     public Ingreso() {
     }
 
-    public Ingreso(String id, Double ingreso, Timestamp fecha) {
+    public Ingreso(String id, Double ingreso, Date fecha) {
         this.id = id;
         this.ingreso = ingreso;
         this.fecha = fecha;
@@ -33,11 +35,11 @@ public class Ingreso {
         this.ingreso = ingreso;
     }
 
-    public Timestamp getFecha() {
+    public Date getFecha() {
         return fecha;
     }
 
-    public void setFecha(Timestamp fecha) {
+    public void setFecha(Date fecha) {
         this.fecha = fecha;
     }
 }
