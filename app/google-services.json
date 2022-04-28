@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "495768198872",
+    "firebase_url": "https://financeappcastillo-default-rtdb.firebaseio.com",
+    "project_id": "financeappcastillo",
+    "storage_bucket": "financeappcastillo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:495768198872:android:c8fd979fb35c93ee7e41ad",
+        "android_client_info": {
+          "package_name": "ia2.datagather.finanzas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "495768198872-75der0438r0hrndlv3muvh0ht63fnhnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHGc7-OfvhCWvxP8Liw8xoUzUbjszLzx4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "495768198872-75der0438r0hrndlv3muvh0ht63fnhnn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
