@@ -10,13 +10,14 @@ import ia2.datagather.finanzas.R;
 
 public class TransaccionViewModel extends RecyclerView.ViewHolder {
 
-    private TextView descripcion, fecha,monto;
+    private TextView descripcion, fecha,monto,categoria;
 
     public TransaccionViewModel(@NonNull View itemView) {
         super(itemView);
         descripcion = itemView.findViewById(R.id.filaTdescripcion);
         fecha = itemView.findViewById(R.id.filaTFecha);
         monto = itemView.findViewById(R.id.filaTMonto);
+        categoria = itemView.findViewById(R.id.textView15);
     }
 
     public TextView getDescripcion() {
@@ -30,4 +31,6 @@ public class TransaccionViewModel extends RecyclerView.ViewHolder {
     public TextView getMonto() {
         return monto;
     }
+
+    public TextView getCategoria(){ return categoria;}
 }

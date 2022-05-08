@@ -11,4 +11,20 @@ public class ConteoCategorias {
         this.categoria = categoria;
         this.contador = contador;
     }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public int getContador() {
+        return contador;
+    }
+
+    public void setContador(int contador) {
+        this.contador = contador;
+    }
 }

@@ -33,7 +33,6 @@
         android:layout_marginBottom="20dp"
         android:text="Monto Establecido:"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/NombreTarjetaTV"
         app:layout_constraintStart_toStartOf="@+id/NombreTarjetaTV"
         app:layout_constraintTop_toBottomOf="@+id/NombreTarjetaTV" />
 

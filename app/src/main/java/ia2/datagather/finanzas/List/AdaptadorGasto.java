@@ -44,7 +44,7 @@ public class AdaptadorGasto extends RecyclerView.Adapter<GastoViewModel> {
         DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
         String valor = "Monto del gasto: $" + gastos.get(position).getMonto();
         holder.getCategoria().setText(gastos.get(position).getCategoria());
-        holder.getFecha().setText(gastos.get(position).getFecha().toDate().toString());
+        holder.getFecha().setText(gastos.get(position).getFecha().toString());
         holder.getMonto().setText(valor);
         holder.getBoton().setOnClickListener(v-> listener.gastoPresionado(gastos.get(position)));
     }

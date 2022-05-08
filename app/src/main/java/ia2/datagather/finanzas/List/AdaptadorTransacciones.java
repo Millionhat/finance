@@ -37,18 +37,19 @@ public class AdaptadorTransacciones extends RecyclerView.Adapter<TransaccionView
             titulo= transaccion.getTipo();
             valor= "$ "+transaccion.getMonto();
         }
+        holder.getCategoria().setText(transaccion.getCategoria());
         holder.getDescripcion().setText(titulo);
-        holder.getFecha().setText(transaccion.getFecha().toDate().toString());
+        holder.getFecha().setText(transaccion.getFecha().toString());
         holder.getMonto().setText(valor);
     }
 
     @Override
     public int getItemCount() {
-        return 0;
+        return transacciones.size();
     }
 
-    public void setTransacciones(ArrayList t){
-        transacciones=t;
+    public void agregarTransaccion(Transaccion t){
+        transacciones.add(t);
         notifyDataSetChanged();
     }
 }

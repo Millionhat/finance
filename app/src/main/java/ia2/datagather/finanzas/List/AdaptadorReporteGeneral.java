@@ -51,7 +51,7 @@ public class AdaptadorReporteGeneral extends RecyclerView.Adapter<RepTarjetaView
 
     @Override
     public int getItemCount() {
-        return 0;
+        return tarjetas.size();
     }
 
     public void setListener(PresionarRepTarjetaListener listener) {

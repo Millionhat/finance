@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -47,6 +48,7 @@ public class ReporteGeneralActivity extends AppCompatActivity implements View.On
         montoDisp= 0.0;
         montoTotal = 0.0;
         usuario = (Usuario) getIntent().getExtras().get("usuario");
+        db = FirebaseFirestore.getInstance();
         valorTotal = findViewById(R.id.repgeneralTotalValorTV);
         valorDisponible = findViewById(R.id.repGenMontoDispTV);
         listaTarjetas = findViewById(R.id.repListaTarjetas);
@@ -56,94 +58,61 @@ public class ReporteGeneralActivity extends AppCompatActivity implements View.On
         listaTarjetas.setHasFixedSize(true);
         LinearLayoutManager manager = new LinearLayoutManager(this);
         listaTarjetas.setLayoutManager(manager);
-        valorTotal.setText("Monto Total: Cargando");
-        valorDisponible.setText("Monto Disponible: Cargando");
-        db = FirebaseFirestore.getInstance();
-        configurarInfo();
-    }
-
-    private void configurarInfo() {
+        valorTotal.setText(" Cargando");
+        valorDisponible.setText(" Cargando");
         cargarReporte();
-        cargarIngresos();
-        montoDisp = montoTotal;
-        cargarGastos();
-        cargarListado();
-    }
-
-    private void cargarListado() {
-        valorTotal.setText("$"+montoTotal);
-        valorDisponible.setText("$"+montoDisp);
-        adaptador.limpiarLista();
-        listado.forEach(t->{
-            adaptador.agregarTarjeta(t);
-        });
     }
 
     private void cargarReporte() {
         Query refTarjetas =db.collection("usuarios").document(usuario.getId()).collection("tarjetas").orderBy("nombre");
         refTarjetas.get().addOnCompleteListener(
                 t->{
-                    adaptador.limpiarLista();
                     for(QueryDocumentSnapshot doc: t.getResult()){
                         Tarjeta tarjeta =doc.toObject(Tarjeta.class);
+                        Double tarjetaMonto = 0.0;
+                        AtomicReference<Double> gastos = new AtomicReference<>(0.0);
+                        AtomicReference<Double> ingresos = new AtomicReference<>(0.0);
+                        ingresos.updateAndGet(v -> v + tarjeta.getCupo());
+                        if(tarjeta.getTipo().equals("Credito")){
+                            LocalDate fecha = LocalDate.now().minusDays(30);
+                            Date fecha30diasAntes = Date.from(fecha.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                            AtomicReference<Double> totalGastos = new AtomicReference<>(0.0);
+                            tarjeta.getGastos().forEach(g->{
+                                int resultado = g.getFecha().compareTo(fecha30diasAntes);
+                                if(resultado>0){
+                                    gastos.updateAndGet(v -> v + g.getMonto());
+                                }
+                            });
+                        }else {
+                            tarjeta.getGastos().forEach(g->{
+                                gastos.updateAndGet(v -> v + g.getMonto());
+                            });
+                            tarjeta.getIngresos().forEach( i -> {
+                                ingresos.updateAndGet(v -> v + i.getIngreso());
+                            });
+                        }
+                        montoTotal += ingresos.get();
+                        tarjetaMonto = ingresos.get() - gastos.get();
+                        montoDisp += tarjetaMonto;
                         TarjetaReporte converted = new TarjetaReporte();
                         converted.setId(tarjeta.getId());
                         converted.setTitulo(tarjeta.getNombre());
                         converted.setTipo(tarjeta.getTipo());
-                        converted.setMonto(tarjeta.getCupo());
+                        converted.setMonto(tarjetaMonto);
                         listado.add(converted);
                     }
+                    listado.forEach(f->{
+                        adaptador.agregarTarjeta(f);
+                        Toast.makeText(this,"Entro",Toast.LENGTH_LONG);
+                    });
+                    runOnUiThread(
+                            () -> {
+                                valorTotal.setText(montoTotal.toString());
+                                valorDisponible.setText(montoDisp.toString());
+                            }
+                    );
                 }
         );
-    }
-
-    private void cargarGastos() {
-        listado.forEach( t -> {
-            Query refGastos;
-            if (t.getTipo().equals("Credito")){
-                LocalDate fecha = LocalDate.now().minusDays(30);
-                Date fecha30diasAntes = Date.from(fecha.atStartOfDay(ZoneId.systemDefault()).toInstant());
-                Timestamp comparacion = new Timestamp(new java.sql.Timestamp(fecha30diasAntes.getTime()));
-                refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                        .document(t.getId()).collection("gastos").whereGreaterThan("fecha", comparacion);
-            }else {
-                refGastos = db.collection("usuarios").document(usuario.getId())
-                        .collection("tarjetas").document(t.getId())
-                        .collection("gastos").orderBy("fecha",Query.Direction.DESCENDING);
-            }
-            refGastos.get().addOnCompleteListener(
-                    g->{
-                        Double totalGastos = 0.0;
-                        for(QueryDocumentSnapshot doc: g.getResult()){
-                            Gasto gasto = doc.toObject(Gasto.class);
-                            totalGastos += gasto.getMonto();
-                        }
-                        t.setMonto(t.getMonto() - totalGastos);
-                        montoDisp -= totalGastos;
-                    }
-            );
-        });
-    }
-
-    private void cargarIngresos() {
-        listado.forEach(t -> {
-            if(t.getTipo().equals("Debito")){
-                Query refIngresos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                        .document(t.getId()).collection("ingresos");
-                refIngresos.get().addOnCompleteListener(
-                        g->{
-                            Double totalIngreso = 0.0;
-                            for(QueryDocumentSnapshot doc: g.getResult()){
-                                Ingreso ingreso = doc.toObject(Ingreso.class);
-                                totalIngreso += ingreso.getIngreso();
-                            }
-                            t.setMonto(t.getMonto()+totalIngreso);
-                            montoTotal += t.getMonto();
-                        }
-                );
-            }
-        });
-
     }
 
     @Override
