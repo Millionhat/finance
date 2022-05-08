@@ -8,23 +8,19 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import ia2.datagather.finanzas.List.AdaptadorTransacciones;
 import ia2.datagather.finanzas.Model.ConteoCategorias;
-import ia2.datagather.finanzas.Model.Gasto;
-import ia2.datagather.finanzas.Model.Ingreso;
+import ia2.datagather.finanzas.Model.Tarjeta;
 import ia2.datagather.finanzas.Model.TarjetaReporte;
 import ia2.datagather.finanzas.Model.Transaccion;
 import ia2.datagather.finanzas.Model.Usuario;
@@ -46,19 +42,24 @@ public class ReporteEspecifico extends AppCompatActivity implements View.OnClick
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reporte_especifico);
+        db = FirebaseFirestore.getInstance();
         usuario = (Usuario) getIntent().getExtras().get("usuario");
         tarjeta = (TarjetaReporte) getIntent().getExtras().get("tarjeta");
         monto = findViewById(R.id.RepEspMontoTV);
         tipo = findViewById(R.id.RepEspTipoTV);
         titulo = findViewById(R.id.RespEspTituloTV);
+        categoriaMasComun= findViewById(R.id.RespEspCategoria);
+        listaTransacciones = findViewById(R.id.ResEspTransacciones);
         categorias = new ArrayList<>();
         adaptador = new AdaptadorTransacciones();
         listaTransacciones.setAdapter(adaptador);
         listaTransacciones.setHasFixedSize(true);
         LinearLayoutManager manager = new LinearLayoutManager(this);
         listaTransacciones.setLayoutManager(manager);
+        titulo.setText(tarjeta.getTitulo());
+        tipo.setText("Tipo de Tarjeta: " + tarjeta.getTipo());
+        monto.setText("Monto Disponible: $ "+ tarjeta.getMonto());
         cargarTransacciones();
-        organizarCategorias();
     }
 
     private void organizarCategorias() {
@@ -79,15 +80,60 @@ public class ReporteEspecifico extends AppCompatActivity implements View.OnClick
 
     private void cargarTransacciones() {
         ArrayList<Transaccion> transaccions= new ArrayList<>();
-        if(tarjeta.getTipo().equals("Credito")){
-            transaccions = cargarGastos();
-        }else{
-            transaccions = cargarGastos();
-            cargarIngresos(transaccions);
-        }
-        ArrayList<Transaccion> ordenados= new ArrayList<>();
-        ordenados = ordenarTransacciones(transaccions);
-        adaptador.setTransacciones(ordenados);
+        Query refTarjeta =  db.collection("usuarios").document(usuario.getId()).collection("tarjetas");
+        refTarjeta.get().addOnCompleteListener(
+                t-> {
+                    for(QueryDocumentSnapshot doc: t.getResult()){
+                        Tarjeta tarjeta1 = doc.toObject(Tarjeta.class);
+                        if(tarjeta1.getTipo().equals("Credito")){
+                            tarjeta1.getGastos().forEach(g->{
+                                transaccions.add(new Transaccion(tarjeta1.getTipo(),
+                                        g.getDescripcion(),g.getCategoria(),-g.getMonto(),g.getFecha()));
+                                boolean agregado = false;
+                                categorias.forEach(c -> {
+                                    if(c.categoria.equals(g.getCategoria())){
+                                        c.contador +=1;
+                                    }
+                                });
+                                if (!agregado){
+                                    categorias.add(new ConteoCategorias(g.getCategoria(),1));
+                                }
+                            });
+                        }else{
+                            tarjeta1.getGastos().forEach(g->{
+                                transaccions.add(new Transaccion("Gasto",
+                                        g.getDescripcion(),g.getCategoria(),-g.getMonto(),g.getFecha()));
+                                AtomicBoolean agregado = new AtomicBoolean(false);
+                                categorias.forEach(c -> {
+                                    if(c.categoria.equals(g.getCategoria())){
+                                        c.contador +=1;
+                                        agregado.set(true);
+                                    }
+                                });
+                                if (!agregado.get()){
+                                    categorias.add(new ConteoCategorias(g.getCategoria(),1));
+                                }
+                            });
+                            tarjeta1.getIngresos().forEach(i ->{
+                                transaccions.add(new Transaccion("Ingreso",
+                                        "Ingreso","Ingreso",i.getIngreso(),i.getFecha()));
+                            });
+                        }
+                        categorias.sort(Comparator.comparing(ConteoCategorias::getContador).reversed());
+                        if(categorias.size()>0){
+                            categoriaMasComun.setText("La categoria con mas gastos es: "+ categorias.get(0).categoria);
+                        }else {
+                            categoriaMasComun.setText("Ningunca Categoria presente");
+                        }
+                        Comparator<Transaccion> comparador = (t1, t2) -> t1.getFecha().compareTo(t2.getFecha());
+                        transaccions.sort(comparador);
+                        for(int i = transaccions.size()-1; i>=0; i--){
+                            adaptador.agregarTransaccion(transaccions.get(i));
+                        }
+                    }
+                }
+        );
+
 
     }
 
@@ -95,48 +141,6 @@ public class ReporteEspecifico extends AppCompatActivity implements View.OnClick
         Comparator<Transaccion> comparador = (t1, t2) -> t1.getFecha().compareTo(t2.getFecha());
         transaccions.sort(comparador);
         return transaccions;
-    }
-
-    private void cargarIngresos(ArrayList<Transaccion> transaccions) {
-
-        Query refIngresos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                .document(tarjeta.getId()).collection("ingresos");
-        AtomicReference<Double> suma= new AtomicReference<>(0.0);
-        refIngresos.get().addOnCompleteListener(
-                g->{
-                    for(QueryDocumentSnapshot doc: g.getResult()){
-                        Ingreso ingreso = doc.toObject(Ingreso.class);
-                        transaccions.add(new Transaccion("Ingreso","","Ingreso",
-                                ingreso.getIngreso(),ingreso.getFecha()));
-                    }
-                }
-        );
-    }
-
-    private ArrayList<Transaccion> cargarGastos() {
-        ArrayList<Transaccion> resultados = new ArrayList<>();
-        Query refGastos;
-        if(tarjeta.getTipo().equals("Credito")){
-            LocalDate fecha = LocalDate.now().minusDays(30);
-            Date fecha30diasAntes = Date.from(fecha.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Timestamp comparacion = new Timestamp(new java.sql.Timestamp(fecha30diasAntes.getTime()));
-            refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                    .document(tarjeta.getId()).collection("gastos").whereGreaterThan("fecha", comparacion);
-        }else{
-            refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
-                    .document(tarjeta.getId()).collection("gastos");
-        }
-        refGastos.get().addOnCompleteListener(
-                g->{
-                    for(QueryDocumentSnapshot doc: g.getResult()) {
-                        Gasto gasto = doc.toObject(Gasto.class);
-                        resultados.add(new Transaccion("Gasto", gasto.getDescripcion(),
-                                gasto.getCategoria(), gasto.getMonto(), gasto.getFecha()));
-                        agregarCategoria(gasto.getCategoria());
-                    }
-                }
-        );
-        return resultados;
     }
 
     private void agregarCategoria(String descripcion) {

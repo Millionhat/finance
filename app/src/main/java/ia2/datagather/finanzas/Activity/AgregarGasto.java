@@ -69,13 +69,13 @@ public class AgregarGasto extends AppCompatActivity implements View.OnClickListe
                 String cat = categoria.getSelectedItem().toString();
                 Double valor = Double.parseDouble(monto.getText().toString());
                 if(desc!="" && cat!="" && valor > 0) {
-                    Date date = new Date();
                     Gasto nuevoGasto = new Gasto(UUID.randomUUID().toString(),cat,desc,valor, new Date());
                     tarjeta.getGastos().add(nuevoGasto);
                     db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
                             .document(tarjeta.getId()).set(tarjeta);
+
                     Intent i = new Intent();
-                    setResult(RESULT_OK,i);
+                    setResult(123,i);
                     finish();
                 }
                 break;

@@ -2,9 +2,10 @@ package ia2.datagather.finanzas.Model;
 
 import com.google.firebase.Timestamp;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Ingreso {
+public class Ingreso implements Serializable {
 
     private String id;
     private Double ingreso;

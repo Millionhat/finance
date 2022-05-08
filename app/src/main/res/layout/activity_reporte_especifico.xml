@@ -24,9 +24,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:text="Monto Disponible: "
-        app:layout_constraintEnd_toEndOf="@+id/textView10"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="@+id/textView10"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/RepEspTipoTV" />
 
     <TextView
@@ -35,8 +34,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:text="Tipo de tarjeta:"
-        app:layout_constraintEnd_toEndOf="@+id/textView10"
-        app:layout_constraintStart_toStartOf="@+id/textView10"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/RespEspTituloTV" />
 
     <TextView
@@ -45,8 +44,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="30dp"
         android:text="TextView"
-        app:layout_constraintEnd_toEndOf="@+id/textView10"
-        app:layout_constraintStart_toStartOf="@+id/textView10"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView10" />
 
     <TextView
@@ -55,8 +54,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:text="Transacciones:"
-        app:layout_constraintEnd_toEndOf="@+id/RepEspMontoTV"
-        app:layout_constraintStart_toStartOf="@+id/RepEspMontoTV"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/RepEspMontoTV" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -72,8 +71,9 @@
         android:id="@+id/RespEspCategoria"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Gastos en comun:"
-        app:layout_constraintEnd_toEndOf="@+id/RepEspMontoTV"
-        app:layout_constraintStart_toStartOf="@+id/RepEspMontoTV"
-        tools:layout_editor_absoluteY="234dp" />
+        android:layout_marginTop="32dp"
+        android:text="Tipo de gasto mas comun:"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/RepEspMontoTV" />
 </androidx.constraintlayout.widget.ConstraintLayout>

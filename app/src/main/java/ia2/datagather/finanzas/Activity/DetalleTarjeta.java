@@ -1,5 +1,9 @@
 package ia2.datagather.finanzas.Activity;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,6 +18,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -23,6 +28,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import ia2.datagather.finanzas.List.AdaptadorGasto;
@@ -77,7 +83,9 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
     }
 
     private void cargarGastos() {
+        adaptador.limpiarLista();
         if(tarjeta.getTipo().equals("Credito") && !loaded){
+            tarjeta.getCupo();
             agregarIngresoBtn.setEnabled(false);
             agregarIngresoBtn.setAlpha(0);
             LocalDate fecha = LocalDate.now().minusDays(30);
@@ -96,22 +104,12 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                     }
             );
             loaded = true;
-            /*
-            Query refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas").document(tarjeta.getId()).collection("gastos").whereGreaterThan("fecha", comparacion);
-            refGastos.get().addOnCompleteListener(
-                    g->{
-                        adaptador.limpiarLista();
-                        Double totalGastos = 0.0;
-                        for(QueryDocumentSnapshot doc: g.getResult()){
-                            Gasto gasto = doc.toObject(Gasto.class);
-                            totalGastos += gasto.getMonto();
-                            adaptador.agregarGasto(gasto);
-                        }
-                        montoDisponible.setText("Monto Disponible: " + (montoTotal-totalGastos));
-                    }
-            );*/
         }else {
             AtomicReference<Double> totalGastos = new AtomicReference<>(0.0);
+            montoTotal = tarjeta.getCupo();
+            tarjeta.getIngresos().forEach( i -> {
+                montoTotal += i.getIngreso();
+            });
             tarjeta.getGastos().forEach(g->{
                 totalGastos.updateAndGet(v -> v + g.getMonto());
                 adaptador.agregarGasto(g);
@@ -138,50 +136,29 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                 );
             }
             loaded=true;
-            /*
-            Query refIngresos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas").document(tarjeta.getId()).collection("ingresos");
-            refIngresos.get().addOnCompleteListener(
-                    g->{
-                        Double totalIngreso = 0.0;
-                        for(QueryDocumentSnapshot doc: g.getResult()){
-                            Ingreso ingreso = doc.toObject(Ingreso.class);
-                            totalIngreso += ingreso.getIngreso();
-                        }
-                        montoTotal = tarjeta.getCupo()+totalIngreso;
-                    }
-            );
-            Query refGastos = db.collection("usuarios").document(usuario.getId()).collection("tarjetas").document(tarjeta.getId()).collection("gastos").orderBy("fecha",Query.Direction.DESCENDING);
-            refGastos.get().addOnCompleteListener(
-                    g->{
-                        adaptador.limpiarLista();
-                        Double totalGastos = 0.0;
-                        for(QueryDocumentSnapshot doc: g.getResult()){
-                            Gasto gasto = doc.toObject(Gasto.class);
-                            totalGastos += gasto.getMonto();
-                            adaptador.agregarGasto(gasto);
-                        }
-                        if(!loaded){
-                            montoTotal = montoTotal - totalGastos;
-                            montoDisponible.setText("Monto Disponible: " + (montoTotal));
-                            loaded = true;
-                            if(montoTotal <= 0){
-                                runOnUiThread(
-                                        ()->{
-                                            crearGastoBtn.setEnabled(false);
-                                        }
-                                );
-                            }else {
-                                runOnUiThread(
-                                        ()->{
-                                            crearGastoBtn.setEnabled(true);
-                                        }
-                                );
-                            }
-                        }
-                    }
-            );*/
         }
     }
+    ActivityResultLauncher<Intent> activityResultLaunch = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if(result.getResultCode() == 123) {
+                        loaded=false;
+                        CollectionReference refTarjetas =db.collection("usuarios").document(usuario.getId()).collection("tarjetas");
+                        Query query = refTarjetas.whereEqualTo("id", tarjeta.getId());
+                        query.get().addOnCompleteListener(t-> {
+                            if(t.isSuccessful() && t.getResult().size()==1){
+                                for (QueryDocumentSnapshot doc : t.getResult()) {
+                                    tarjeta = doc.toObject(Tarjeta.class);
+                                    cargarGastos();
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+    );
 
     @Override
     public void onClick(View view) {
@@ -191,22 +168,12 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
                 i.putExtra("usuario", usuario);
                 i.putExtra("tarjeta", tarjeta);
                 loaded=false;
-                startActivityForResult(i,1);
+                activityResultLaunch.launch(i);
                 break;
 
             case R.id.AgregarIngresoBtn:
                 crearDialogo();
                 break;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode ==1){
-            if(resultCode== RESULT_OK){
-                cargarGastos();
-            }
         }
     }
 
@@ -236,6 +203,7 @@ public class DetalleTarjeta extends AppCompatActivity implements View.OnClickLis
         tarjeta.getIngresos().add(nuevoIngreso);
         db.collection("usuarios").document(usuario.getId()).collection("tarjetas")
                 .document(tarjeta.getId()).set(tarjeta);
+        adaptador.limpiarLista();
         cargarGastos();
     }
 
